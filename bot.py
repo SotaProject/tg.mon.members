@@ -16,13 +16,13 @@ from db import get_stats, db_init, add_or_update_member
 TOKEN = getenv("TELEGRAM_TOKEN")
 dp = Dispatcher()
 
-ADMIN_ID = getenv("ADMIN_ID", "").split(",")
+ADMIN_IDS = getenv("ADMIN_IDS", "").split(",")
 CHANNEL_ID = getenv("CHANNEL_ID")
 
 
 @dp.message(Command("stats"))
 async def stats_handler(message: Message) -> None:
-    if str(message.chat.id) not in ADMIN_ID:
+    if str(message.chat.id) not in ADMIN_IDS:
         await message.answer("who are u?")
         return
 
