@@ -1,8 +1,9 @@
 version: '3.8'
 
 services:
-  tg_news_bot:
+  tgcmbot:
     build: ./
+    container_name: tgcmbot
     environment:
       DB_URL: 'postgresql+asyncpg://tgcmbot:tgcmbot@postgres:5432/tgcmbot'
       ADMIN_IDS: ${ADMIN_IDS:-96699669,}

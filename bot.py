@@ -1,4 +1,5 @@
 import asyncio
+import datetime
 import logging
 import sys
 from os import getenv
@@ -20,15 +21,22 @@ ADMIN_IDS = getenv("ADMIN_IDS", "").split(",")
 CHANNEL_ID = getenv("CHANNEL_ID")
 
 
-@dp.message(Command("stats"))
+@dp.message(Command("stats", "stats_1h", "stats_6h", "stats_12h", "stats_24h"))
 async def stats_handler(message: Message) -> None:
+    since = None
+
+    if "_" in message.text:
+        since = datetime.datetime.utcnow() - datetime.timedelta(
+            hours=int(message.text.split("_")[1].replace("h", ""))
+        )
+
     if str(message.chat.id) not in ADMIN_IDS:
         await message.answer("who are u?")
         return
 
-    stats = await get_stats()
+    stats = await get_stats(since)
     await message.answer(
-        "left: {left}\njoined: {joined}\nsince: {since}".format(**stats)
+        "left: {left}\njoined: {joined}\nsince: {since} [UTC]".format(**stats)
     )
 
 

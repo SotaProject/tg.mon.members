@@ -35,9 +35,12 @@ class MembersHistory(Base):
     updated_dt: Mapped[datetime.datetime] = mapped_column(server_default=func.now())
 
 
-async def get_stats() -> dict:
+async def get_stats(since: datetime = None) -> dict:
     async with async_session() as session:
-        stmt = select(MembersHistory.is_member, func.count()).group_by(MembersHistory.is_member)
+        stmt = select(MembersHistory.is_member, func.count())
+        if since is not None:
+            stmt = stmt.where(MembersHistory.created_dt >= since)
+        stmt = stmt.group_by(MembersHistory.is_member)
         result = await session.execute(stmt)
         joined = left = 0
 
@@ -47,12 +50,14 @@ async def get_stats() -> dict:
             else:
                 left = row["count"]
 
-        stmt = select(MembersHistory).order_by(MembersHistory.created_dt).limit(1)
-        result = await session.execute(stmt)
-        member = result.scalar()
+        if since is None:
+            stmt = select(MembersHistory).order_by(MembersHistory.created_dt).limit(1)
+            result = await session.execute(stmt)
+            member = result.scalar()
+            since = member.created_dt
 
-        logging.info(f"[stats]: {left=}, {joined=} since {member.created_dt}")
-        return {"joined": joined, "left": left, "since": member.created_dt}
+        logging.info(f"[stats]: {left=}, {joined=} since {since}")
+        return {"joined": joined, "left": left, "since": since}
 
 
 def event2user_meta(event: ChatMemberUpdated, old_meta: dict = None) -> dict:
@@ -64,7 +69,10 @@ def event2user_meta(event: ChatMemberUpdated, old_meta: dict = None) -> dict:
     if old_meta is None:
         return {
             "user_data": event.from_user.model_dump(exclude_none=True),
-            "status_history": [event.new_chat_member.status.value],
+            "status_history": [{
+                "datetime": event.date.isoformat(),
+                "status": event.new_chat_member.status.value
+            }],
             "user_history": [new_user_info]
         }
 
@@ -77,7 +85,10 @@ def event2user_meta(event: ChatMemberUpdated, old_meta: dict = None) -> dict:
         "user_data": event.from_user.model_dump(exclude_none=True),
         "status_history": [
             *old_meta.get("status_history", []),
-            event.new_chat_member.status.value
+            {
+                "datetime": event.date.isoformat(),
+                "status": event.new_chat_member.status.value
+            }
         ],
         "user_history": user_history
     }
