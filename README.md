@@ -1,3 +1,2 @@
-# tg-cm-monitoring-bot 
+# Monitoring telegram channel/chat members
 
-telegram chat members monitoring bot
